@@ -1,0 +1,10 @@
+{
+  "name": "catalog-fixture",
+  "version": "1.0.0",
+  "private": true,
+  "description": "A test plugin with a slow page for the performance bar to find. Its imports resolve from the site.",
+  "type": "module",
+  "exports": {
+    ".": "./index.tsx"
+  }
+}

@@ -1,0 +1,7 @@
+# The plugin is the root package; site/ is the OTW site it's developed and tested on.
+packages:
+  - site
+
+onlyBuiltDependencies:
+  - esbuild
+  - sharp
