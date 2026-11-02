@@ -15,6 +15,7 @@ import {
   type ResourceEntry,
 } from './browser'
 import { formatBytes, formatMs, summarize } from './format'
+import { hintCookie } from './hint'
 import {
   BrowserPanel,
   DatabasePanel,
@@ -41,6 +42,8 @@ const TABS: { id: Tab; label: string }[] = [
   { id: 'resources', label: 'Resources' },
   { id: 'navigations', label: 'Navigations' },
 ]
+/** What a prerendered page can show: there's no server trace to break down. */
+const PRERENDERED_TABS: readonly Tab[] = ['server', 'browser', 'resources', 'navigations']
 
 interface Navigation {
   path: string
@@ -54,6 +57,7 @@ type ServerState =
   | { status: 'loading' }
   | { status: 'ready'; trace: RequestTrace }
   | { status: 'missing'; reason: string }
+  | { status: 'prerendered' }
 
 const MAX_ATTEMPTS = 8
 
@@ -68,9 +72,16 @@ const session: { hydrated: number | null; path: string | null; navigations: Navi
 const NOT_INSTRUMENTED =
   "Server tracing is off: the site doesn't load the CMS's instrumentation. Run cms generate, which writes instrumentation.ts, and restart the site."
 const NOT_RECORDED = 'This page was rendered before recording started. Reload it.'
+const PRERENDERED =
+  "This page's layout is prerendered, so the bar can't see the server's side of the request: Browser and Resources show the browser's. Pages rendered per request, and every admin screen, show the server's side too."
 
 /** The server's trace of this request, fetched once the response has ended, retried until it has. */
-function useServerTrace(traceId: string | null, endpoint: string, available: boolean): ServerState {
+function useServerTrace(
+  traceId: string | null,
+  endpoint: string,
+  available: boolean,
+  prerendered: boolean,
+): ServerState {
   // Each result is tied to the trace it's for, so a new trace id reads as loading until it arrives.
   const [result, setResult] = useState<{ traceId: string; state: ServerState } | null>(null)
   useEffect(() => {
@@ -116,6 +127,7 @@ function useServerTrace(traceId: string | null, endpoint: string, available: boo
     }
   }, [traceId, endpoint, available])
 
+  if (prerendered) return { status: 'prerendered' }
   if (!available) return { status: 'missing', reason: NOT_INSTRUMENTED }
   if (!traceId) return { status: 'missing', reason: NOT_RECORDED }
   return result?.traceId === traceId ? result.state : { status: 'loading' }
@@ -281,27 +293,36 @@ function Chip({
 
 /**
  * The bar at the bottom of each page, like Query Monitor's: what the server and the browser did
- * for this request. Only people with `performance.view` get it.
+ * for this request. Only people with `performance.view` get it. On a prerendered page, only the
+ * browser's side.
  */
 export function PerformanceBar({
   traceId,
   endpoint,
   available,
   historyUrl,
+  prerendered = false,
 }: {
   traceId: string | null
   endpoint: string
   available: boolean
   historyUrl: string
+  prerendered?: boolean
 }) {
   const [open, setOpen] = useState<Tab | null>(null)
-  const server = useServerTrace(traceId, endpoint, available)
+  const server = useServerTrace(traceId, endpoint, available, prerendered)
   const browser = useBrowserMetrics()
   const navigations = useNavigations()
   const summary = useMemo(
     () => (server.status === 'ready' ? summarize(server.trace) : null),
     [server],
   )
+  const tabs = prerendered ? TABS.filter((tab) => PRERENDERED_TABS.includes(tab.id)) : TABS
+
+  // Tells prerendered pages, which can't know who's viewing, to ask the server for the bar.
+  useEffect(() => {
+    document.cookie = hintCookie({ secure: location.protocol === 'https:', remember: true })
+  }, [])
 
   useEffect(() => {
     if (!open) return
@@ -326,7 +347,7 @@ export function PerformanceBar({
         {open && (
           <>
             <div className="otw-perf-tabs" role="tablist" aria-label="Performance details">
-              {TABS.map((tab) => (
+              {tabs.map((tab) => (
                 <button
                   key={tab.id}
                   type="button"
@@ -372,7 +393,13 @@ export function PerformanceBar({
                 {trace.duration === null ? '…' : formatMs(trace.duration)}
               </Rated>
             ) : (
-              <span className="otw-perf-muted">{server.status === 'loading' ? '…' : 'n/a'}</span>
+              <span className="otw-perf-muted">
+                {server.status === 'loading'
+                  ? '…'
+                  : server.status === 'prerendered'
+                    ? 'prerendered'
+                    : 'n/a'}
+              </span>
             )}
           </Chip>
           <Chip label="TTFB" onClick={() => show('browser')}>
@@ -402,21 +429,25 @@ export function PerformanceBar({
               </Rated>
             </Chip>
           )}
-          <Chip label="Queries" onClick={() => show('database')}>
-            {summary ? (
-              <span className={summary.queries.repeated.length ? 'otw-perf-fair' : undefined}>
-                {summary.queries.count} · {formatMs(summary.queries.time)}
-              </span>
-            ) : (
-              '–'
-            )}
-          </Chip>
-          <Chip label="Hooks" onClick={() => show('hooks')}>
-            {summary ? summary.hooks.count : '–'}
-          </Chip>
-          <Chip label="Memory" onClick={() => show('server')}>
-            {formatBytes(trace?.memory?.heapUsed)}
-          </Chip>
+          {!prerendered && (
+            <>
+              <Chip label="Queries" onClick={() => show('database')}>
+                {summary ? (
+                  <span className={summary.queries.repeated.length ? 'otw-perf-fair' : undefined}>
+                    {summary.queries.count} · {formatMs(summary.queries.time)}
+                  </span>
+                ) : (
+                  '–'
+                )}
+              </Chip>
+              <Chip label="Hooks" onClick={() => show('hooks')}>
+                {summary ? summary.hooks.count : '–'}
+              </Chip>
+              <Chip label="Memory" onClick={() => show('server')}>
+                {formatBytes(trace?.memory?.heapUsed)}
+              </Chip>
+            </>
+          )}
           {navigations.length > 0 && (
             <Chip label="Navigations" onClick={() => show('navigations')}>
               {navigations.length}
@@ -455,6 +486,7 @@ function Panel({
   if (server.status === 'loading')
     return <p className="otw-perf-note">Waiting for the server's trace…</p>
   if (server.status === 'missing') return <p className="otw-perf-note">{server.reason}</p>
+  if (server.status === 'prerendered') return <p className="otw-perf-note">{PRERENDERED}</p>
   const summary = summarize(server.trace)
   if (tab === 'timeline') return <TimelinePanel trace={server.trace} />
   if (tab === 'database') return <DatabasePanel trace={server.trace} summary={summary} />

@@ -9,13 +9,19 @@ const bar = (page: Page) => page.locator('[data-otw-perf]')
 const chip = (page: Page, label: string) =>
   bar(page).getByRole('button', { name: new RegExp(`^${label}`) })
 
-/** Collects the JavaScript the page downloads from now on. */
-function scriptsOf(page: Page): () => Promise<string[]> {
-  const bodies: Promise<string>[] = []
-  page.on('response', (response) => {
-    if (response.request().resourceType() === 'script') bodies.push(response.text())
-  })
-  return () => Promise.all(bodies)
+/** Collects the JavaScript the page downloads from now on, each file before the page runs it. */
+async function scriptsOf(page: Page): Promise<string[]> {
+  const bodies: string[] = []
+  // Read on the way in: a body read from the response event is gone once the page moves on.
+  await page.route(
+    (url) => url.pathname.endsWith('.js'),
+    async (route) => {
+      const response = await route.fetch()
+      bodies.push(await response.text())
+      await route.fulfill({ response })
+    },
+  )
+  return bodies
 }
 // A class name only the bar's code contains.
 const BAR_CODE = 'otw-perf-dock'
@@ -88,17 +94,19 @@ test('visitors and customers never get it', async ({ page }) => {
   expect(response.status()).toBe(403)
 })
 
-test('visitors download none of the bar’s code', async ({ page }) => {
-  const scripts = scriptsOf(page)
-  await page.goto('/catalog')
-  await page.waitForLoadState('networkidle')
-  expect((await scripts()).filter((code) => code.includes(BAR_CODE))).toEqual([])
+test('visitors download none of the bar’s code, on either kind of page', async ({ page }) => {
+  const scripts = await scriptsOf(page)
+  for (const path of ['/catalog', '/about']) {
+    await page.goto(path)
+    await page.waitForLoadState('networkidle')
+  }
+  expect(scripts.filter((code) => code.includes(BAR_CODE))).toEqual([])
 
   // Only once it's shown.
   await signIn(page, ADMIN)
   await page.goto('/catalog')
   await expect(chip(page, 'Server')).toHaveText(/\d/)
-  expect((await scripts()).some((code) => code.includes(BAR_CODE))).toBe(true)
+  expect(scripts.some((code) => code.includes(BAR_CODE))).toBe(true)
 })
 
 test('Recent requests lists what administrators opened, each in full', async ({ page }) => {
@@ -111,4 +119,48 @@ test('Recent requests lists what administrators opened, each in full', async ({ 
   await expect(page.getByRole('heading', { name: 'GET /catalog' })).toBeVisible()
   await expect(page.getByRole('main')).toContainText('Where the time went')
   await expect(page.getByRole('main')).toContainText('SELECT 1 AS id')
+})
+
+test('prerendered pages show administrators the browser’s side, and visitors nothing', async ({
+  page,
+}) => {
+  // A visitor: no bar, and not even a request to ask about one.
+  const asked: string[] = []
+  page.on('request', (request) => {
+    if (request.url().includes('/api/p/performance/')) asked.push(request.url())
+  })
+  await page.goto('/about')
+  await expect(page.getByRole('heading', { name: 'About' })).toBeVisible()
+  await page.waitForLoadState('networkidle')
+  await expect(bar(page)).toHaveCount(0)
+  expect(asked).toEqual([])
+
+  // The bar in the admin leaves the hint that prerendered pages look for.
+  await signIn(page, ADMIN)
+  await expect(chip(page, 'Server')).toHaveText(/\d/)
+  await page.goto('/about')
+  await expect(chip(page, 'Server')).toHaveText(/prerendered/)
+  await expect(chip(page, 'TTFB')).toHaveText(/TTFB\s*\d/)
+  await expect(chip(page, 'Queries')).toHaveCount(0)
+  await chip(page, 'Server').click()
+  await expect(bar(page).getByRole('tab')).toHaveText([
+    'Server',
+    'Browser',
+    'Resources',
+    'Navigations',
+  ])
+  await expect(bar(page).getByRole('tabpanel')).toContainText('layout is prerendered')
+  await bar(page).getByRole('tab', { name: 'Browser' }).click()
+  await expect(bar(page).getByRole('tabpanel')).toContainText('Largest Contentful Paint')
+})
+
+test('a hint the server turns down is forgotten', async ({ page, context }) => {
+  await signIn(page, CUSTOMER)
+  await context.addCookies([{ name: 'performance_bar', value: '1', url: page.url() }])
+  await page.goto('/about')
+  await expect(page.getByRole('heading', { name: 'About' })).toBeVisible()
+  await expect
+    .poll(async () => (await context.cookies()).some((cookie) => cookie.name === 'performance_bar'))
+    .toBe(false)
+  await expect(bar(page)).toHaveCount(0)
 })

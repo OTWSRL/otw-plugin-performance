@@ -19,6 +19,12 @@ It reads the traces the CMS records with OpenTelemetry (`cms.traces`), so it nee
 OTW CMS that has them. For people who can't see the bar, it adds the recording (about 0.15 ms on
 the server) and none of the bar's code: it's a chunk of its own, loaded only where the bar shows.
 
+On prerendered pages, which have no request to trace and don't know who's viewing, a site puts
+`<PrerenderedPerformanceBar />` from `@otw/plugin-performance/prerendered` last in the layout's
+`<body>`. It shows the browser's side to people the bar has shown to elsewhere (a cookie,
+`performance_bar`, marks them, and the server confirms); visitors get about a kilobyte of script
+that finds no cookie and stops.
+
 ## Working on it
 
 The CMS's packages aren't on npm yet, so this repo links to a checkout of the CMS next to it:
@@ -37,10 +43,12 @@ pnpm test:e2e     # Playwright, against the test site built from scratch
 
 ```
 src/        the plugin: index.tsx (the definition), bar.tsx (the bar, a client component, loaded
-            by lazy-bar.tsx), panels.tsx and admin.tsx (what it shows), format.ts and browser.ts (the numbers)
+            by lazy-bar.tsx), prerendered.tsx (for prerendered layouts), hint.ts (its cookie),
+            panels.tsx and admin.tsx (what it shows), format.ts and browser.ts (the numbers)
 test/       unit tests, on @otw/testing's kernel
 site/       an OTW site with this plugin installed, for `pnpm dev` and the e2e tests
 site/catalog  a test plugin with a slow page (/catalog: one query per item) for the bar to find
+site/src/app/(static)  a prerendered layout and page (/about), for PrerenderedPerformanceBar
 ```
 
 Two things follow from linking to a checkout, and go away once the CMS is installed from npm:

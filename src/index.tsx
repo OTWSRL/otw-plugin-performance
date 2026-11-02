@@ -1,4 +1,4 @@
-import { definePlugin, HttpError, type PluginContext, type User } from '@otw/sdk'
+import { definePlugin, HttpError, type ApiContext, type PluginContext, type User } from '@otw/sdk'
 import { RequestPage, RequestsPage } from './admin'
 import { LazyPerformanceBar } from './lazy-bar'
 
@@ -12,6 +12,15 @@ declare module '@otw/sdk' {
 export { summarize, type TraceSummary } from './format'
 
 const TRACE_ID = /^[0-9a-f]{32}$/
+const NO_STORE = { 'cache-control': 'no-store' }
+
+/** Answers 401 or 403 unless the request's user may see performance. */
+async function requireViewer(cms: PluginContext, context: ApiContext): Promise<void> {
+  const user = await context.user()
+  if (!user) throw new HttpError(401, 'Sign in to see performance traces')
+  if (!cms.auth.can(user, 'performance.view'))
+    throw new HttpError(403, 'You may not see performance traces')
+}
 
 /** The bar, for people who may see it; it keeps this request's trace so the bar can fetch it. */
 function bar(cms: PluginContext) {
@@ -52,14 +61,27 @@ export default definePlugin({
       method: 'GET',
       path: '/traces/:id',
       async handler(_request, context) {
-        const user = await context.user()
-        if (!user) throw new HttpError(401, 'Sign in to see performance traces')
-        if (!cms.auth.can(user, 'performance.view'))
-          throw new HttpError(403, 'You may not see performance traces')
+        await requireViewer(cms, context)
         const id = context.params.id ?? ''
         const trace = TRACE_ID.test(id) ? cms.traces.get(id) : undefined
         if (!trace) throw new HttpError(404, "That request's trace isn't kept")
-        return Response.json(trace, { headers: { 'cache-control': 'no-store' } })
+        return Response.json(trace, { headers: NO_STORE })
+      },
+    })
+
+    // Asked by PrerenderedPerformanceBar: prerendered pages can't tell who's viewing.
+    cms.routes.api({
+      method: 'GET',
+      path: '/viewer',
+      async handler(_request, context) {
+        await requireViewer(cms, context)
+        return Response.json(
+          {
+            endpoint: cms.routes.apiUrl('/traces'),
+            historyUrl: cms.admin.url('performance.requests'),
+          },
+          { headers: NO_STORE },
+        )
       },
     })
 

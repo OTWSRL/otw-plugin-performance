@@ -5,6 +5,7 @@ import { renderToStaticMarkup } from 'react-dom/server'
 import { afterEach, describe, expect, it } from 'vitest'
 import performance from '../src'
 import { RequestPage, RequestsPage } from '../src/admin'
+import { PrerenderedPerformanceBar } from '../src/prerendered'
 
 // A page that runs the same query once per item: the N+1 the bar should point out. Plain SQL,
 // not drizzle's sql``: the CMS's packages are linked from a checkout, with a drizzle of their own.
@@ -25,7 +26,10 @@ const catalog = definePlugin({
 })
 
 let site: TestKernel | undefined
-afterEach(() => site?.close())
+afterEach(async () => {
+  await site?.close()
+  site = undefined
+})
 
 const boot = async () =>
   (site = await createTestKernel({ plugins: [performance, catalog], tracing: true }))
@@ -112,6 +116,29 @@ describe('the traces API', () => {
       ).status,
     ).toBe(404)
     expect((await harness.request('GET', path, { cookie: admin.cookie })).status).toBe(200)
+  })
+})
+
+describe('prerendered pages', () => {
+  it('get no HTML from the bar: it’s the same page for everyone', () => {
+    expect(renderToStaticMarkup(<PrerenderedPerformanceBar />)).toBe('')
+  })
+
+  it('learn from the server whether the viewer may see the bar, and where it fetches from', async () => {
+    const harness = await boot()
+    const admin = await harness.signIn()
+    const customer = await harness.signIn('customer')
+    const path = '/api/p/performance/viewer'
+
+    expect((await harness.request('GET', path)).status).toBe(401)
+    expect((await harness.request('GET', path, { cookie: customer.cookie })).status).toBe(403)
+    const response = await harness.request('GET', path, { cookie: admin.cookie })
+    expect(response.status).toBe(200)
+    expect(response.headers.get('cache-control')).toBe('no-store')
+    expect(await response.json()).toEqual({
+      endpoint: '/api/p/performance/traces',
+      historyUrl: '/admin/performance',
+    })
   })
 })
 
