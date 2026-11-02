@@ -6,6 +6,7 @@ import {
   navigationPhases,
   navigationTiming,
   pageReady,
+  pageSize,
   summarizeResources,
   totalBlockingTime,
 } from '../src/browser'
@@ -189,6 +190,58 @@ describe('navigationTiming', () => {
     expect(navigationTiming(9000, '/b', null, [request(100, 400)])).toEqual({
       wait: null,
       fetch: null,
+    })
+  })
+})
+
+describe('pageSize', () => {
+  const origin = 'https://shop.example'
+  const file = (
+    name: string,
+    transferSize: number,
+    encodedBodySize: number,
+    decodedBodySize: number,
+  ) => ({
+    name,
+    transferSize,
+    encodedBodySize,
+    decodedBodySize,
+  })
+
+  it('weighs the HTML and every file as sent, whether or not the cache had it this time', () => {
+    const size = pageSize(
+      { transferSize: 10_300, encodedBodySize: 10_000, decodedBodySize: 40_000 },
+      [
+        file(`${origin}/app.js`, 50_300, 50_000, 150_000),
+        file(`${origin}/logo.png`, 0, 20_000, 20_000), // from the cache
+      ],
+      origin,
+    )
+    expect(size).toEqual({
+      size: 80_000,
+      transferred: 60_600,
+      unpacked: 210_000,
+      files: 3,
+      unsized: 0,
+    })
+  })
+
+  it('counts the files from other sites that keep their size to themselves', () => {
+    const size = pageSize(
+      null,
+      [
+        file('https://fonts.example/a.woff2', 0, 0, 0),
+        file(`${origin}/api/ping`, 0, 0, 0), // empty, not hidden
+        file('https://cdn.example/b.js', 9_000, 8_000, 30_000), // allowed by Timing-Allow-Origin
+      ],
+      origin,
+    )
+    expect(size).toEqual({
+      size: 8_000,
+      transferred: 9_000,
+      unpacked: 30_000,
+      files: 3,
+      unsized: 1,
     })
   })
 })

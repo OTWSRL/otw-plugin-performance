@@ -136,6 +136,50 @@ export function pageReady(hydrated: number | null, firstPaint: number | null): n
   return firstPaint === null ? hydrated : Math.max(hydrated, firstPaint)
 }
 
+/** A file's sizes, as the browser reports them for the page and each file it loaded. */
+export interface SizedEntry {
+  transferSize: number
+  encodedBodySize: number
+  decodedBodySize: number
+}
+
+export interface PageSize {
+  /** The page's HTML and files as sent, compressed: what a first visit downloads. */
+  size: number
+  /** What came over the network this time: files from the browser's cache add nothing. */
+  transferred: number
+  /** The same files, unpacked. */
+  unpacked: number
+  files: number
+  /** Files from other sites that don't let the page see their size (no Timing-Allow-Origin). */
+  unsized: number
+}
+
+/**
+ * The page's weight: its HTML and every file it has loaded, from `origin` or other sites. It
+ * counts files from the browser's cache too, so it doesn't depend on what was cached.
+ */
+export function pageSize(
+  document: SizedEntry | null,
+  resources: readonly (SizedEntry & { name: string })[],
+  origin: string,
+): PageSize {
+  const entries = document ? [document, ...resources] : resources
+  const sum = (key: keyof SizedEntry) => entries.reduce((total, entry) => total + entry[key], 0)
+  return {
+    size: sum('encodedBodySize'),
+    transferred: sum('transferSize'),
+    unpacked: sum('decodedBodySize'),
+    files: entries.length,
+    unsized: resources.filter(
+      (entry) =>
+        entry.encodedBodySize === 0 &&
+        entry.decodedBodySize === 0 &&
+        !entry.name.startsWith(`${origin}/`),
+    ).length,
+  }
+}
+
 export interface ResourceSummary {
   count: number
   transferSize: number

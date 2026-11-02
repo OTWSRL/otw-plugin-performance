@@ -16,12 +16,12 @@ export function formatBytes(bytes: number | null | undefined): string {
   return `${(bytes / 1024 / 1024).toFixed(1)} MB`
 }
 
-export type Metric = 'server' | 'ttfb' | 'fcp' | 'lcp' | 'ready' | 'cls' | 'inp' | 'tbt'
+export type Metric = 'server' | 'ttfb' | 'fcp' | 'lcp' | 'ready' | 'cls' | 'inp' | 'tbt' | 'size'
 export type Rating = 'good' | 'fair' | 'poor'
 
 /**
  * Good up to the first value, poor past the second: Google's Web Vitals thresholds, and
- * Lighthouse's for Time to Interactive (ready).
+ * Lighthouse's for Time to Interactive (ready) and total byte weight (size).
  */
 export const THRESHOLDS: Readonly<Record<Metric, readonly [number, number]>> = {
   server: [200, 800],
@@ -32,6 +32,7 @@ export const THRESHOLDS: Readonly<Record<Metric, readonly [number, number]>> = {
   cls: [0.1, 0.25],
   inp: [200, 500],
   tbt: [200, 600],
+  size: [2667 * 1024, 4000 * 1024],
 }
 
 export function rate(metric: Metric, value: number | null | undefined): Rating | null {

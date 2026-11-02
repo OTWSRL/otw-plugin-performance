@@ -6,6 +6,7 @@ the bottom of every page of the site and the admin. For each request, it shows:
 
 - the server's time;
 - the browser's timings: the Web Vitals (FCP, LCP, CLS, INP), and when the page was ready to use;
+- the page's size, and its JavaScript memory;
 - every query, with its statement (never its values) and the plugin it ran for, with repeated
   statements flagged;
 - hooks, each plugin's own time, a timeline of Next.js's and the CMS's steps, resources, and the

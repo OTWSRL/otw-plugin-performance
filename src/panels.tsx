@@ -1,6 +1,6 @@
 import type { RequestTrace, TraceSpan } from '@otw/sdk'
 import type { ReactNode } from 'react'
-import type { NavigationPhases, ResourceSummary } from './browser'
+import type { NavigationPhases, PageSize, ResourceSummary } from './browser'
 import {
   depths,
   formatBytes,
@@ -27,6 +27,8 @@ export interface BrowserMetrics {
   /** When the page was ready to use: on screen, and hydrated so its links and buttons respond. */
   ready: number | null
   resources: ResourceSummary
+  size: PageSize
+  /** The page's JavaScript heap, in Chromium browsers: others don't tell a page its memory. */
   memory: { used: number; limit: number } | null
   connection: { type: string; downlink: number | null; rtt: number | null } | null
 }
@@ -444,12 +446,32 @@ export function BrowserPanel({ browser }: { browser: BrowserMetrics }) {
   )
 }
 
-export function ResourcesPanel({ resources }: { resources: ResourceSummary }) {
+export function ResourcesPanel({
+  resources,
+  size,
+}: {
+  resources: ResourceSummary
+  size: PageSize
+}) {
   return (
     <>
+      <div className="otw-perf-grid">
+        <Stat label="Page size, compressed">
+          <Rated metric="size" value={size.size}>
+            {formatBytes(size.size)}
+          </Rated>
+        </Stat>
+        <Stat label="Unpacked">{formatBytes(size.unpacked)}</Stat>
+        <Stat label="Transferred this time">{formatBytes(size.transferred)}</Stat>
+        <Stat label="Files">{size.files}</Stat>
+      </div>
       <p className="otw-perf-note">
-        {resources.count} files, {formatBytes(resources.transferSize)} transferred,{' '}
-        {resources.cached} from the browser's cache.
+        The page size is its HTML and every file it has loaded, compressed as they're sent: what a
+        first visit downloads. {resources.cached} came from the browser's cache this time.
+        {size.unsized > 0 &&
+          ` ${size.unsized} from other sites don't share their size, so they're left out.`}
+        {process.env.NODE_ENV === 'development' &&
+          " This is a development build: its scripts aren't minified, so pages weigh several times what they will in production."}
       </p>
       <table>
         <thead>

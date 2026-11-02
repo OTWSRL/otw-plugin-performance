@@ -10,13 +10,13 @@ import {
   navigationPhases,
   navigationTiming,
   pageReady,
+  pageSize,
   summarizeResources,
   totalBlockingTime,
   type InteractionEvent,
   type LayoutShift,
   type NavigationStart,
   type NavigationTiming,
-  type ResourceEntry,
 } from './browser'
 import { formatBytes, formatMs, summarize } from './format'
 import { hintCookie } from './hint'
@@ -158,6 +158,7 @@ function useBrowserMetrics(): BrowserMetrics | null {
       const [navigation] = performance.getEntriesByType(
         'navigation',
       ) as PerformanceNavigationTiming[]
+      const resources = performance.getEntriesByType('resource') as PerformanceResourceTiming[]
       const memory = (
         performance as Performance & {
           memory?: { usedJSHeapSize: number; jsHeapSizeLimit: number }
@@ -176,9 +177,8 @@ function useBrowserMetrics(): BrowserMetrics | null {
         inp: interactionToNextPaint(events),
         longTasks: { count: tasks.length, blocking: totalBlockingTime(tasks) },
         ready: pageReady(hydratedAt(), fcp),
-        resources: summarizeResources(
-          performance.getEntriesByType('resource') as unknown as ResourceEntry[],
-        ),
+        resources: summarizeResources(resources),
+        size: pageSize(navigation ?? null, resources, location.origin),
         memory: memory ? { used: memory.usedJSHeapSize, limit: memory.jsHeapSizeLimit } : null,
         connection: connection?.effectiveType
           ? {
@@ -226,10 +226,13 @@ function useBrowserMetrics(): BrowserMetrics | null {
     // loadEventEnd is set after the load handlers run, so read it on the next turn.
     const onLoad = () => setTimeout(schedule, 0)
     window.addEventListener('load', onLoad)
+    // Memory, and files loaded later, change with no event to say so.
+    const timer = setInterval(schedule, 2000)
     schedule()
     return () => {
       for (const observer of observers) observer.disconnect()
       window.removeEventListener('load', onLoad)
+      clearInterval(timer)
       cancelAnimationFrame(frame)
     }
   }, [])
@@ -465,6 +468,16 @@ export function PerformanceBar({
               </Rated>
             </Chip>
           )}
+          <Chip label="Size" onClick={() => show('resources')}>
+            <Rated metric="size" value={browser?.size.size ?? null}>
+              {formatBytes(browser?.size.size)}
+            </Rated>
+          </Chip>
+          {browser?.memory && (
+            <Chip label="JS heap" onClick={() => show('browser')}>
+              {formatBytes(browser.memory.used)}
+            </Chip>
+          )}
           {!prerendered && (
             <>
               <Chip label="Queries" onClick={() => show('database')}>
@@ -515,7 +528,7 @@ function Panel({
     )
   if (tab === 'resources')
     return browser ? (
-      <ResourcesPanel resources={browser.resources} />
+      <ResourcesPanel resources={browser.resources} size={browser.size} />
     ) : (
       <p className="otw-perf-note">Measuring…</p>
     )

@@ -186,6 +186,30 @@ test('Ready is when the page could first be used, not when the bar showed up', a
   await expect.poll(async () => (await ms('Ready')) - (await ms('FCP'))).toBeGreaterThanOrEqual(0)
 })
 
+test('the bar weighs the page, and shows its JavaScript memory', async ({ page }) => {
+  await signIn(page, ADMIN)
+  await page.goto('/catalog')
+  const size = /^Size\s*\d+(\.\d+)? (KB|MB)$/
+  await expect(chip(page, 'Size')).toHaveText(size)
+  // Chromium only: other browsers don't tell a page its memory.
+  await expect(chip(page, 'JS heap')).toHaveText(/^JS heap\s*\d+(\.\d+)? (KB|MB)$/)
+
+  await chip(page, 'Size').click()
+  const panel = bar(page).getByRole('tabpanel')
+  await expect(panel).toContainText('Page size, compressed')
+  await expect(panel).toContainText('Transferred this time')
+  // Rated the same, and coloured the same, as on the chip.
+  const color = (element: Element) => getComputedStyle(element).color
+  const onChip = await chip(page, 'Size').locator('span[class]').evaluate(color)
+  const card = panel.locator('.otw-perf-stat').filter({ hasText: 'Page size, compressed' })
+  await expect(card.locator('strong span')).toHaveCSS('color', onChip)
+  await page.keyboard.press('Escape')
+
+  await page.goto('/about')
+  await expect(chip(page, 'Server')).toHaveText(/prerendered/)
+  await expect(chip(page, 'Size')).toHaveText(size)
+})
+
 test('the bar times each page opened with a link, from the click', async ({ page }) => {
   await signIn(page, ADMIN)
   await expect(chip(page, 'Server')).toHaveText(/\d/)
