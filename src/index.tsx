@@ -1,6 +1,6 @@
 import { definePlugin, HttpError, type PluginContext, type User } from '@otw/sdk'
 import { RequestPage, RequestsPage } from './admin'
-import { PerformanceBar } from './bar'
+import { LazyPerformanceBar } from './lazy-bar'
 
 declare module '@otw/sdk' {
   interface Capabilities {
@@ -20,7 +20,7 @@ function bar(cms: PluginContext) {
     const traceId = cms.traces.currentId() ?? null
     if (traceId) cms.traces.keep(traceId)
     return (
-      <PerformanceBar
+      <LazyPerformanceBar
         traceId={traceId}
         endpoint={cms.routes.apiUrl('/traces')}
         available={cms.traces.available}

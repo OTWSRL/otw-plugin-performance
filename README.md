@@ -16,8 +16,8 @@ site's Performance page; how tracing works is in its Hosting › Tracing and Plu
 Tracing.
 
 It reads the traces the CMS records with OpenTelemetry (`cms.traces`), so it needs the version of
-OTW CMS that has them, and adds nothing to requests of people who can't see the bar beyond
-recording them (about 0.15 ms).
+OTW CMS that has them. For people who can't see the bar, it adds the recording (about 0.15 ms on
+the server) and none of the bar's code: it's a chunk of its own, loaded only where the bar shows.
 
 ## Working on it
 
@@ -36,8 +36,8 @@ pnpm test:e2e     # Playwright, against the test site built from scratch
 ```
 
 ```
-src/        the plugin: index.tsx (the definition), bar.tsx (the bar, a client component),
-            panels.tsx and admin.tsx (what it shows), format.ts and browser.ts (the numbers)
+src/        the plugin: index.tsx (the definition), bar.tsx (the bar, a client component, loaded
+            by lazy-bar.tsx), panels.tsx and admin.tsx (what it shows), format.ts and browser.ts (the numbers)
 test/       unit tests, on @otw/testing's kernel
 site/       an OTW site with this plugin installed, for `pnpm dev` and the e2e tests
 site/catalog  a test plugin with a slow page (/catalog: one query per item) for the bar to find

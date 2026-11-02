@@ -9,6 +9,17 @@ const bar = (page: Page) => page.locator('[data-otw-perf]')
 const chip = (page: Page, label: string) =>
   bar(page).getByRole('button', { name: new RegExp(`^${label}`) })
 
+/** Collects the JavaScript the page downloads from now on. */
+function scriptsOf(page: Page): () => Promise<string[]> {
+  const bodies: Promise<string>[] = []
+  page.on('response', (response) => {
+    if (response.request().resourceType() === 'script') bodies.push(response.text())
+  })
+  return () => Promise.all(bodies)
+}
+// A class name only the bar's code contains.
+const BAR_CODE = 'otw-perf-dock'
+
 test('the first visit sets up the administrator, who adds a customer', async ({ page }) => {
   await page.goto('/admin')
   await expect(page).toHaveURL('/admin/setup')
@@ -75,6 +86,19 @@ test('visitors and customers never get it', async ({ page }) => {
     '/api/p/performance/traces/0123456789abcdef0123456789abcdef',
   )
   expect(response.status()).toBe(403)
+})
+
+test('visitors download none of the bar’s code', async ({ page }) => {
+  const scripts = scriptsOf(page)
+  await page.goto('/catalog')
+  await page.waitForLoadState('networkidle')
+  expect((await scripts()).filter((code) => code.includes(BAR_CODE))).toEqual([])
+
+  // Only once it's shown.
+  await signIn(page, ADMIN)
+  await page.goto('/catalog')
+  await expect(chip(page, 'Server')).toHaveText(/\d/)
+  expect((await scripts()).some((code) => code.includes(BAR_CODE))).toBe(true)
 })
 
 test('Recent requests lists what administrators opened, each in full', async ({ page }) => {
