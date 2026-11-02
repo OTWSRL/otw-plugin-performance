@@ -8,10 +8,13 @@ import {
   describeElement,
   interactionToNextPaint,
   navigationPhases,
+  navigationTiming,
   summarizeResources,
   totalBlockingTime,
   type InteractionEvent,
   type LayoutShift,
+  type NavigationStart,
+  type NavigationTiming,
   type ResourceEntry,
 } from './browser'
 import { formatBytes, formatMs, summarize } from './format'
@@ -45,12 +48,10 @@ const TABS: { id: Tab; label: string }[] = [
 /** What a prerendered page can show: there's no server trace to break down. */
 const PRERENDERED_TABS: readonly Tab[] = ['server', 'browser', 'resources', 'navigations']
 
-interface Navigation {
+interface Navigation extends NavigationTiming {
   path: string
   /** When the new page showed, from the start of the first page load. */
   at: number
-  /** The router's request for the page, if it made one for this navigation. */
-  fetch: { duration: number; total: number; transferSize: number } | null
 }
 
 type ServerState =
@@ -63,10 +64,18 @@ const MAX_ATTEMPTS = 8
 
 // Kept for the life of the page, not the component: Next.js re-creates an admin screen, bar and
 // all, on each navigation between screens.
-const session: { hydrated: number | null; path: string | null; navigations: Navigation[] } = {
+const session: {
+  hydrated: number | null
+  path: string | null
+  navigations: Navigation[]
+  start: NavigationStart | null
+  listening: boolean
+} = {
   hydrated: null,
   path: null,
   navigations: [],
+  start: null,
+  listening: false,
 }
 
 const NOT_INSTRUMENTED =
@@ -241,17 +250,40 @@ function subscribe(listener: () => void) {
 
 function recordNavigation(path: string) {
   const at = performance.now()
-  const fetches = (performance.getEntriesByType('resource') as PerformanceResourceTiming[]).filter(
-    (entry) => entry.name.includes('_rsc=') && entry.responseEnd <= at + 50,
+  const requests = (performance.getEntriesByType('resource') as PerformanceResourceTiming[]).filter(
+    (entry) => entry.name.includes('_rsc='),
   )
-  const last = fetches.at(-1)
-  // A request that ended long before the page changed was a prefetch.
-  const fetch =
-    last && at - last.responseEnd < 1000
-      ? { duration: last.duration, total: at - last.startTime, transferSize: last.transferSize }
-      : null
-  session.navigations = [{ path, at, fetch }, ...session.navigations].slice(0, 20)
+  const timing = navigationTiming(at, location.pathname, session.start, requests)
+  session.start = null
+  session.navigations = [{ path, at, ...timing }, ...session.navigations].slice(0, 20)
   for (const listener of listeners) listener()
+}
+
+/**
+ * Notes when each navigation begins, so the bar times it as people wait for it: from the click,
+ * even when the router fetched the page earlier, as it does once a link is in view.
+ */
+function listenForNavigationStarts() {
+  if (session.listening) return
+  session.listening = true
+  // Capturing, so it's noted whatever the page's own handlers do with the click.
+  document.addEventListener(
+    'click',
+    (event) => {
+      if (event.button !== 0 || event.metaKey || event.ctrlKey || event.shiftKey || event.altKey)
+        return
+      const link = event.target instanceof Element ? event.target.closest('a[href]') : null
+      if (!(link instanceof HTMLAnchorElement) || (link.target && link.target !== '_self')) return
+      const url = new URL(link.href)
+      if (url.origin === location.origin && url.pathname !== location.pathname)
+        session.start = { at: event.timeStamp, path: url.pathname }
+    },
+    true,
+  )
+  // Back and Forward change the address before this runs.
+  window.addEventListener('popstate', (event) => {
+    session.start = { at: event.timeStamp, path: location.pathname }
+  })
 }
 
 /**
@@ -265,6 +297,7 @@ function useNavigations(): Navigation[] {
     () => session.navigations,
     () => NO_NAVIGATIONS,
   )
+  useEffect(listenForNavigationStarts, [])
   useEffect(() => {
     if (session.path === null) session.path = pathname
     if (session.path === pathname) return
@@ -451,6 +484,7 @@ export function PerformanceBar({
           {navigations.length > 0 && (
             <Chip label="Navigations" onClick={() => show('navigations')}>
               {navigations.length}
+              {navigations[0]!.wait !== null && ` · last ${formatMs(navigations[0]!.wait)}`}
             </Chip>
           )}
         </div>
@@ -506,6 +540,10 @@ function NavigationsPanel({ navigations }: { navigations: Navigation[] }) {
   return (
     <>
       <p className="otw-perf-note">
+        Until shown runs from the click, or Back or Forward, to the new page on screen. The router
+        fetches a page when it's opened, or earlier, once a link to it is in view (prefetched).
+      </p>
+      <p className="otw-perf-note">
         In the admin, the Server tabs follow each page you open. On the site, they show the first
         page: reload to see another page's server trace.
       </p>
@@ -513,8 +551,8 @@ function NavigationsPanel({ navigations }: { navigations: Navigation[] }) {
         <thead>
           <tr>
             <th>Page</th>
-            <th className="num">Fetching it</th>
             <th className="num">Until shown</th>
+            <th className="num">Fetching it</th>
             <th className="num">Transferred</th>
           </tr>
         </thead>
@@ -524,10 +562,10 @@ function NavigationsPanel({ navigations }: { navigations: Navigation[] }) {
               <td>
                 <code>{navigation.path}</code>
               </td>
+              <td className="num">{formatMs(navigation.wait)}</td>
               <td className="num">
                 {navigation.fetch ? formatMs(navigation.fetch.duration) : 'prefetched'}
               </td>
-              <td className="num">{navigation.fetch ? formatMs(navigation.fetch.total) : '–'}</td>
               <td className="num">
                 {navigation.fetch ? formatBytes(navigation.fetch.transferSize) : '–'}
               </td>

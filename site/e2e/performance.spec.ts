@@ -154,6 +154,22 @@ test('prerendered pages show administrators the browser’s side, and visitors n
   await expect(bar(page).getByRole('tabpanel')).toContainText('Largest Contentful Paint')
 })
 
+test('the bar times each page opened with a link, from the click', async ({ page }) => {
+  await signIn(page, ADMIN)
+  await expect(chip(page, 'Server')).toHaveText(/\d/)
+  await page.goto('/about')
+  await expect(chip(page, 'Server')).toHaveText(/prerendered/)
+  // By now the router has fetched the linked page, as it does once a link is in view.
+  await page.waitForLoadState('networkidle')
+  await page.getByRole('link', { name: 'Team' }).click()
+  await expect(page.getByRole('heading', { name: 'Team' })).toBeVisible()
+  await expect(chip(page, 'Navigations')).toHaveText(/Navigations\s*1 · last \d+(\.\d+)? (ms|s)/)
+
+  await chip(page, 'Navigations').click()
+  const row = bar(page).getByRole('tabpanel').getByRole('row').filter({ hasText: '/about/team' })
+  await expect(row.getByRole('cell').nth(1)).toHaveText(/^\d+(\.\d+)? (ms|s)$/)
+})
+
 test('a hint the server turns down is forgotten', async ({ page, context }) => {
   await signIn(page, CUSTOMER)
   await context.addCookies([{ name: 'performance_bar', value: '1', url: page.url() }])

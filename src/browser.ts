@@ -182,3 +182,45 @@ export function describeElement(
       : []
   return classes.length ? `${tag}.${classes.slice(0, 2).join('.')}` : tag
 }
+
+/** Where a navigation began: a click on a link to `path`, or Back or Forward to it. */
+export interface NavigationStart {
+  at: number
+  path: string
+}
+
+/** One of the router's requests for a page: a resource entry for an `?_rsc=` URL. */
+export interface RouterRequest {
+  startTime: number
+  duration: number
+  responseEnd: number
+  transferSize: number
+}
+
+export interface NavigationTiming {
+  /** How long the page took to show, from the click; `null` when nothing tells when it began. */
+  wait: number | null
+  /** The router's request for the page; `null` when it had fetched it already. */
+  fetch: { duration: number; transferSize: number } | null
+}
+
+/**
+ * Times a navigation that showed `path` at `at`. A click or Back and Forward begins it; with
+ * neither, such as after a redirect, the router's request for the page does.
+ */
+export function navigationTiming(
+  at: number,
+  path: string,
+  start: NavigationStart | null,
+  requests: readonly RouterRequest[],
+): NavigationTiming {
+  const began = start?.path === path ? start.at : null
+  const last = requests.filter((request) => request.responseEnd <= at + 50).at(-1)
+  // A request made before the click, or that ended long before the page changed, was a prefetch.
+  const request =
+    last && (began === null ? at - last.responseEnd < 1000 : last.startTime >= began) ? last : null
+  return {
+    wait: began !== null ? at - began : request ? at - request.startTime : null,
+    fetch: request ? { duration: request.duration, transferSize: request.transferSize } : null,
+  }
+}

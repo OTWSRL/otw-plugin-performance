@@ -4,6 +4,7 @@ import {
   describeElement,
   interactionToNextPaint,
   navigationPhases,
+  navigationTiming,
   summarizeResources,
   totalBlockingTime,
 } from '../src/browser'
@@ -148,5 +149,45 @@ describe('describeElement', () => {
     expect(describeElement({ tagName: 'H1', className: 'title big extra' })).toBe('h1.title.big')
     expect(describeElement({ tagName: 'P', className: '' })).toBe('p')
     expect(describeElement(null)).toBeNull()
+  })
+})
+
+describe('navigationTiming', () => {
+  const request = (startTime: number, responseEnd: number) => ({
+    startTime,
+    duration: responseEnd - startTime,
+    responseEnd,
+    transferSize: 4000,
+  })
+
+  it('times a navigation from the click, with the request the click made', () => {
+    const timing = navigationTiming(1350, '/b', { at: 1000, path: '/b' }, [
+      request(100, 150),
+      request(1005, 1305),
+    ])
+    expect(timing).toEqual({ wait: 350, fetch: { duration: 300, transferSize: 4000 } })
+  })
+
+  it('still times a page the router fetched before the click', () => {
+    // Fetched when its link came into view; the click only shows it.
+    const timing = navigationTiming(5040, '/b', { at: 5000, path: '/b' }, [request(4400, 4700)])
+    expect(timing).toEqual({ wait: 40, fetch: null })
+  })
+
+  it('times it from the request when no click led there, as after a redirect', () => {
+    const fetched = { wait: 350, fetch: { duration: 300, transferSize: 4000 } }
+    expect(navigationTiming(2350, '/login', null, [request(2000, 2300)])).toEqual(fetched)
+    expect(
+      navigationTiming(2350, '/login', { at: 1990, path: '/account' }, [request(2000, 2300)]),
+    ).toEqual(fetched)
+  })
+
+  it("doesn't guess with nothing to go by", () => {
+    expect(navigationTiming(9000, '/b', null, [])).toEqual({ wait: null, fetch: null })
+    // A request that ended long before the page changed was a prefetch.
+    expect(navigationTiming(9000, '/b', null, [request(100, 400)])).toEqual({
+      wait: null,
+      fetch: null,
+    })
   })
 })
