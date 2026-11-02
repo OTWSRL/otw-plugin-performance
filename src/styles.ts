@@ -74,7 +74,7 @@ export const CSS = `
 .otw-perf-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 8px; margin-bottom: 8px; }
 .otw-perf-stat { border: 1px solid var(--perf-line); border-radius: 4px; padding: 8px 10px; }
 .otw-perf-stat strong { display: block; font-size: 16px; font-weight: 600; }
-.otw-perf-stat span { color: var(--perf-muted); }
+.otw-perf-stat > span { color: var(--perf-muted); }
 .otw-perf-note { margin: 4px 0 8px; color: var(--perf-muted); }
 .otw-perf-warning { margin: 4px 0 10px; padding: 6px 10px; border-left: 3px solid var(--perf-fair); background: rgb(242 214 117 / 10%); }
 .otw-perf-error { color: var(--perf-poor); }

@@ -64,6 +64,11 @@ test('administrators get the bar on the site, with the server’s and the browse
   await expect(panel).toContainText('load catalog.list')
   await bar(page).getByRole('tab', { name: 'Browser' }).click()
   await expect(panel).toContainText('Largest Contentful Paint')
+  // Rated the same, and coloured the same, as on the chip.
+  const color = (element: Element) => getComputedStyle(element).color
+  const onChip = await chip(page, 'TTFB').locator('span[class]').evaluate(color)
+  const card = panel.locator('.otw-perf-stat').filter({ hasText: 'Time to first byte' })
+  await expect(card.locator('strong span')).toHaveCSS('color', onChip)
   await page.keyboard.press('Escape')
   await expect(bar(page).getByRole('tabpanel')).toHaveCount(0)
 })
