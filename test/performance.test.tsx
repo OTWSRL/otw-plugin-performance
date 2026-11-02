@@ -4,7 +4,7 @@ import type { ReactElement } from 'react'
 import { renderToStaticMarkup } from 'react-dom/server'
 import { afterEach, describe, expect, it } from 'vitest'
 import performance from '../src'
-import { RequestPage, RequestsPage } from '../src/admin'
+import performanceAdmin, { RequestPage, RequestsPage } from '../src/admin'
 import { PrerenderedPerformanceBar } from '../src/prerendered'
 
 // A page that runs the same query once per item: the N+1 the bar should point out. Plain SQL,
@@ -31,8 +31,13 @@ afterEach(async () => {
   site = undefined
 })
 
-const boot = async () =>
-  (site = await createTestKernel({ plugins: [performance, catalog], tracing: true }))
+/** As the admin and the API boot it; `{ admin: false }`, as the site's pages do. */
+const boot = async ({ admin = true } = {}) =>
+  (site = await createTestKernel({
+    plugins: [performance, catalog],
+    admin: admin ? [performanceAdmin] : undefined,
+    tracing: true,
+  }))
 
 type BarProps = { traceId: string | null; endpoint: string; available: boolean; historyUrl: string }
 
@@ -49,7 +54,7 @@ async function footer(harness: TestKernel, user: User | null, path = '/catalog')
 
 describe('the performance bar', () => {
   it('records requests once active, and shows the bar only to people who may see it', async () => {
-    const harness = await boot()
+    const harness = await boot({ admin: false })
     expect(harness.traces!.enabled).toBe(true)
     const admin = await harness.signIn()
     const customer = await harness.signIn('customer')
@@ -63,6 +68,19 @@ describe('the performance bar', () => {
       available: true,
       historyUrl: '/admin/performance',
     })
+  })
+
+  it('ends every admin screen too, where the admin entry is loaded', async () => {
+    expect((await boot({ admin: false })).kernel.slot('admin.footer')).toEqual([])
+    await site!.close()
+    const harness = await boot()
+    const admin = await harness.signIn()
+    let bar: ReactElement<BarProps> | null = null
+    await harness.inRequest('/admin/performance', async () => {
+      const [Fill] = harness.kernel.slot('admin.footer')
+      bar = (await Fill!({ user: admin.user })) as ReactElement<BarProps> | null
+    })
+    expect(bar!.props.historyUrl).toBe('/admin/performance')
   })
 
   it('keeps the trace of a request it was shown on, with its repeated queries', async () => {

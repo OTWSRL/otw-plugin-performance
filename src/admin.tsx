@@ -1,6 +1,7 @@
 import { ListTable } from '@otw/admin-ui'
-import type { RequestTrace } from '@otw/sdk'
+import { defineAdmin, type RequestTrace } from '@otw/sdk'
 import { formatBytes, formatMs, summarize } from './format'
+import performance from './index'
 import {
   DatabasePanel,
   HooksPanel,
@@ -9,7 +10,37 @@ import {
   ServerPanel,
   TimelinePanel,
 } from './panels'
+import { performanceSlot, TRACE_ID } from './slot'
 import { CSS } from './styles'
+
+/** The admin entry: Performance › Recent requests, and the bar at the end of every admin screen. */
+export default defineAdmin(performance, (cms) => {
+  cms.slots.fill('admin.footer', { component: performanceSlot(cms), priority: 1000 })
+
+  cms.admin.page({
+    name: 'requests',
+    path: '/',
+    title: 'Recent requests',
+    capability: 'performance.view',
+    menu: { label: 'Recent requests' },
+    load: () => cms.traces.list().filter((trace) => trace.duration !== null),
+    component: ({ data }) => (
+      <RequestsPage
+        traces={data}
+        detailUrl={(id) => cms.admin.url('performance.request', { id })}
+      />
+    ),
+  })
+  cms.admin.page({
+    name: 'request',
+    path: '/requests/:id',
+    capability: 'performance.view',
+    load: ({ params }) =>
+      TRACE_ID.test(params.id ?? '') ? (cms.traces.get(params.id!) ?? null) : null,
+    title: ({ data }) => `${data.method} ${data.path ?? ''}`,
+    component: ({ data }) => <RequestPage trace={data} />,
+  })
+})
 
 const time = (epochMs: number) => new Date(epochMs).toISOString().slice(11, 19)
 

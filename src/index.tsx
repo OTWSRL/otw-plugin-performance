@@ -1,6 +1,5 @@
-import { definePlugin, HttpError, type ApiContext, type PluginContext, type User } from '@otw/sdk'
-import { RequestPage, RequestsPage } from './admin'
-import { LazyPerformanceBar } from './lazy-bar'
+import { definePlugin, HttpError, type ApiContext, type PluginContext } from '@otw/sdk'
+import { performanceSlot, TRACE_ID } from './slot'
 
 declare module '@otw/sdk' {
   interface Capabilities {
@@ -11,7 +10,6 @@ declare module '@otw/sdk' {
 
 export { summarize, type TraceSummary } from './format'
 
-const TRACE_ID = /^[0-9a-f]{32}$/
 const NO_STORE = { 'cache-control': 'no-store' }
 
 /** Answers 401 or 403 unless the request's user may see performance. */
@@ -20,23 +18,6 @@ async function requireViewer(cms: PluginContext, context: ApiContext): Promise<v
   if (!user) throw new HttpError(401, 'Sign in to see performance traces')
   if (!cms.auth.can(user, 'performance.view'))
     throw new HttpError(403, 'You may not see performance traces')
-}
-
-/** The bar, for people who may see it; it keeps this request's trace so the bar can fetch it. */
-function bar(cms: PluginContext) {
-  return function PerformanceSlot({ user }: { user: User | null }) {
-    if (!cms.auth.can(user, 'performance.view')) return null
-    const traceId = cms.traces.currentId() ?? null
-    if (traceId) cms.traces.keep(traceId)
-    return (
-      <LazyPerformanceBar
-        traceId={traceId}
-        endpoint={cms.routes.apiUrl('/traces')}
-        available={cms.traces.available}
-        historyUrl={cms.admin.url('performance.requests')}
-      />
-    )
-  }
 }
 
 export default definePlugin({
@@ -52,10 +33,9 @@ export default definePlugin({
     cms.traces.enable()
     cms.auth.capability('performance.view', { label: 'See request performance' })
 
-    // Last, after other plugins' fills: the bar belongs at the very end of the page.
-    const Bar = bar(cms)
-    cms.slots.fill('site.footer', { component: Bar, priority: 1000 })
-    cms.slots.fill('admin.footer', { component: Bar, priority: 1000 })
+    // Last, after other plugins' fills: the bar belongs at the very end of the page. The admin
+    // entry puts it on the admin's screens.
+    cms.slots.fill('site.footer', { component: performanceSlot(cms), priority: 1000 })
 
     cms.routes.api({
       method: 'GET',
@@ -78,35 +58,11 @@ export default definePlugin({
         return Response.json(
           {
             endpoint: cms.routes.apiUrl('/traces'),
-            historyUrl: cms.admin.url('performance.requests'),
+            historyUrl: cms.admin.url('/'),
           },
           { headers: NO_STORE },
         )
       },
-    })
-
-    cms.admin.page({
-      name: 'requests',
-      path: '/',
-      title: 'Recent requests',
-      capability: 'performance.view',
-      menu: { label: 'Recent requests' },
-      load: () => cms.traces.list().filter((trace) => trace.duration !== null),
-      component: ({ data }) => (
-        <RequestsPage
-          traces={data}
-          detailUrl={(id) => cms.admin.url('performance.request', { id })}
-        />
-      ),
-    })
-    cms.admin.page({
-      name: 'request',
-      path: '/requests/:id',
-      capability: 'performance.view',
-      load: ({ params }) =>
-        TRACE_ID.test(params.id ?? '') ? (cms.traces.get(params.id!) ?? null) : null,
-      title: ({ data }) => `${data.method} ${data.path ?? ''}`,
-      component: ({ data }) => <RequestPage trace={data} />,
     })
   },
 })

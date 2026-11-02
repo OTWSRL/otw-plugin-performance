@@ -43,9 +43,11 @@ pnpm test:e2e     # Playwright, against the test site built from scratch
 ```
 
 ```
-src/        the plugin: index.tsx (the definition), bar.tsx (the bar, a client component, loaded
-            by lazy-bar.tsx), prerendered.tsx (for prerendered layouts), hint.ts (its cookie),
-            panels.tsx and admin.tsx (what it shows), format.ts and browser.ts (the numbers)
+src/        the plugin: index.tsx (the main entry), admin.tsx (the admin entry, `./admin`: Recent
+            requests and the bar on admin screens), slot.tsx (the bar's slot, for both),
+            bar.tsx (the bar, a client component, loaded by lazy-bar.tsx), prerendered.tsx (for
+            prerendered layouts), hint.ts (its cookie), panels.tsx (what it shows), format.ts
+            and browser.ts (the numbers)
 test/       unit tests, on @otw/testing's kernel
 site/       an OTW site with this plugin installed, for `pnpm dev` and the e2e tests
 site/catalog  a test plugin with a slow page (/catalog: one query per item) for the bar to find

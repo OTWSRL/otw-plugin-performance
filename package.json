@@ -10,7 +10,8 @@
   },
   "exports": {
     ".": "./src/index.tsx",
-    "./prerendered": "./src/prerendered.tsx"
+    "./prerendered": "./src/prerendered.tsx",
+    "./admin": "./src/admin.tsx"
   },
   "files": [
     "src"
