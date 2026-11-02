@@ -126,6 +126,16 @@ export interface ResourceEntry {
   decodedBodySize: number
 }
 
+/**
+ * When the page was ready to use: hydrated, so its links and buttons respond, and on screen. A
+ * small page can hydrate before the browser first paints it, and no one clicks what they can't
+ * see.
+ */
+export function pageReady(hydrated: number | null, firstPaint: number | null): number | null {
+  if (hydrated === null) return null
+  return firstPaint === null ? hydrated : Math.max(hydrated, firstPaint)
+}
+
 export interface ResourceSummary {
   count: number
   transferSize: number

@@ -1,8 +1,9 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useEffect, useLayoutEffect, useState } from 'react'
 import { hasHint, hintCookie } from './hint'
 import { LazyPerformanceBar } from './lazy-bar'
+import { markHydrated } from './hydrated'
 
 // Plugins' API routes are mounted under /api/p/{plugin id}.
 const VIEWER_URL = '/api/p/performance/viewer'
@@ -23,6 +24,10 @@ interface Viewer {
  */
 export function PrerenderedPerformanceBar() {
   const [viewer, setViewer] = useState<Viewer | null>(null)
+  // As the page hydrates: the bar shows only once the server answers. Visitors are left alone.
+  useLayoutEffect(() => {
+    if (hasHint(document.cookie)) markHydrated()
+  }, [])
   useEffect(() => {
     if (!hasHint(document.cookie)) return
     let stopped = false

@@ -9,6 +9,7 @@ import {
   interactionToNextPaint,
   navigationPhases,
   navigationTiming,
+  pageReady,
   summarizeResources,
   totalBlockingTime,
   type InteractionEvent,
@@ -19,6 +20,7 @@ import {
 } from './browser'
 import { formatBytes, formatMs, summarize } from './format'
 import { hintCookie } from './hint'
+import { hydratedAt } from './hydrated'
 import {
   BrowserPanel,
   DatabasePanel,
@@ -65,13 +67,11 @@ const MAX_ATTEMPTS = 8
 // Kept for the life of the page, not the component: Next.js re-creates an admin screen, bar and
 // all, on each navigation between screens.
 const session: {
-  hydrated: number | null
   path: string | null
   navigations: Navigation[]
   start: NavigationStart | null
   listening: boolean
 } = {
-  hydrated: null,
   path: null,
   navigations: [],
   start: null,
@@ -146,8 +146,6 @@ function useServerTrace(
 function useBrowserMetrics(): BrowserMetrics | null {
   const [metrics, setMetrics] = useState<BrowserMetrics | null>(null)
   useEffect(() => {
-    session.hydrated ??= performance.now()
-    const { hydrated } = session
     const shifts: LayoutShift[] = []
     const events: InteractionEvent[] = []
     const tasks: { duration: number }[] = []
@@ -177,7 +175,7 @@ function useBrowserMetrics(): BrowserMetrics | null {
         cls: cumulativeLayoutShift(shifts),
         inp: interactionToNextPaint(events),
         longTasks: { count: tasks.length, blocking: totalBlockingTime(tasks) },
-        hydrated,
+        ready: pageReady(hydratedAt(), fcp),
         resources: summarizeResources(
           performance.getEntriesByType('resource') as unknown as ResourceEntry[],
         ),
@@ -448,6 +446,11 @@ export function PerformanceBar({
           <Chip label="LCP" onClick={() => show('browser')}>
             <Rated metric="lcp" value={browser?.lcp?.time ?? null}>
               {formatMs(browser?.lcp?.time)}
+            </Rated>
+          </Chip>
+          <Chip label="Ready" onClick={() => show('browser')}>
+            <Rated metric="ready" value={browser?.ready ?? null}>
+              {formatMs(browser?.ready)}
             </Rated>
           </Chip>
           <Chip label="CLS" onClick={() => show('browser')}>

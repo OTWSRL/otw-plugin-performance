@@ -1,7 +1,8 @@
 'use client'
 
-import { lazy, Suspense, type ComponentProps } from 'react'
+import { lazy, Suspense, useLayoutEffect, type ComponentProps } from 'react'
 import type { PerformanceBar as Bar } from './bar'
+import { markHydrated } from './hydrated'
 
 // The bar's code is a chunk of its own, downloaded only where the bar renders. A site imports
 // every installed plugin into its layout, so a client component imported directly would be
@@ -12,6 +13,8 @@ const PerformanceBar = lazy(() =>
 
 /** The performance bar, its code loaded only when it's shown. */
 export function LazyPerformanceBar(props: ComponentProps<typeof Bar>) {
+  // As the page hydrates, before the bar's own code arrives.
+  useLayoutEffect(markHydrated, [])
   return (
     <Suspense fallback={null}>
       <PerformanceBar {...props} />

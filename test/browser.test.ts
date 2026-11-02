@@ -5,6 +5,7 @@ import {
   interactionToNextPaint,
   navigationPhases,
   navigationTiming,
+  pageReady,
   summarizeResources,
   totalBlockingTime,
 } from '../src/browser'
@@ -189,5 +190,21 @@ describe('navigationTiming', () => {
       wait: null,
       fetch: null,
     })
+  })
+})
+
+describe('pageReady', () => {
+  it('is when React hydrated the page, once it was on screen', () => {
+    expect(pageReady(400, 120)).toBe(400)
+  })
+
+  it("waits for the first paint: no one clicks what they can't see", () => {
+    // A small cached page can hydrate before the browser first paints it.
+    expect(pageReady(44, 72)).toBe(72)
+  })
+
+  it('goes by hydration until the paint is known, and is unknown before hydration', () => {
+    expect(pageReady(300, null)).toBe(300)
+    expect(pageReady(null, 120)).toBeNull()
   })
 })

@@ -24,8 +24,8 @@ export interface BrowserMetrics {
   cls: number
   inp: number | null
   longTasks: { count: number; blocking: number }
-  /** When the bar became interactive, from the start of the navigation. */
-  hydrated: number | null
+  /** When the page was ready to use: on screen, and hydrated so its links and buttons respond. */
+  ready: number | null
   resources: ResourceSummary
   memory: { used: number; limit: number } | null
   connection: { type: string; downlink: number | null; rtt: number | null } | null
@@ -366,6 +366,11 @@ export function BrowserPanel({ browser }: { browser: BrowserMetrics }) {
             {formatMs(browser.lcp?.time)}
           </Rated>
         </Stat>
+        <Stat label="Ready to use">
+          <Rated metric="ready" value={browser.ready}>
+            {formatMs(browser.ready)}
+          </Rated>
+        </Stat>
         <Stat label="Cumulative Layout Shift">
           <Rated metric="cls" value={browser.cls}>
             {browser.cls.toFixed(3)}
@@ -383,7 +388,6 @@ export function BrowserPanel({ browser }: { browser: BrowserMetrics }) {
         </Stat>
         <Stat label="DOMContentLoaded">{formatMs(phases?.domContentLoaded)}</Stat>
         <Stat label="Load">{formatMs(phases?.load)}</Stat>
-        <Stat label="Interactive (hydrated)">{formatMs(browser.hydrated)}</Stat>
       </div>
       {browser.lcp?.element && (
         <p className="otw-perf-note">

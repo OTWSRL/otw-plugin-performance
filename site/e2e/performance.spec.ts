@@ -159,6 +159,33 @@ test('prerendered pages show administrators the browser’s side, and visitors n
   await expect(bar(page).getByRole('tabpanel')).toContainText('Largest Contentful Paint')
 })
 
+test('Ready is when the page could first be used, not when the bar showed up', async ({ page }) => {
+  await signIn(page, ADMIN)
+  await expect(chip(page, 'Server')).toHaveText(/\d/)
+
+  // On a prerendered page the bar waits for the server's answer; the page doesn't.
+  await page.route('**/api/p/performance/viewer', async (route) => {
+    await new Promise((resolve) => setTimeout(resolve, 1500))
+    await route.continue()
+  })
+  await page.goto('/about')
+  await chip(page, 'TTFB').click()
+  const hydrated = bar(page).locator('.otw-perf-stat').filter({ hasText: 'Ready to use' })
+  await expect(hydrated.locator('strong')).toHaveText(/^\d+ ms$/)
+  await expect(chip(page, 'Ready')).toHaveText(/^Ready\s*\d+ ms$/)
+  await page.keyboard.press('Escape')
+
+  // And on pages rendered per request.
+  await page.goto('/catalog')
+  await expect(chip(page, 'Ready')).toHaveText(/^Ready\s*\d+(\.\d+)? (ms|s)$/)
+  // No one can use a page before they see it.
+  const ms = async (label: string) => {
+    const [, value, unit] = (await chip(page, label).innerText()).match(/([\d.]+) (ms|s)$/) ?? []
+    return Number(value) * (unit === 's' ? 1000 : 1)
+  }
+  await expect.poll(async () => (await ms('Ready')) - (await ms('FCP'))).toBeGreaterThanOrEqual(0)
+})
+
 test('the bar times each page opened with a link, from the click', async ({ page }) => {
   await signIn(page, ADMIN)
   await expect(chip(page, 'Server')).toHaveText(/\d/)
