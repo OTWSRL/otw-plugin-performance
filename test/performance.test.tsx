@@ -1,5 +1,5 @@
-import { definePlugin, type RequestTrace, type User } from '@otw/sdk'
-import { createTestKernel, type TestKernel } from '@otw/testing'
+import { definePlugin, type RequestTrace, type User } from '@otwdesign/sdk'
+import { createTestKernel, type TestKernel } from '@otwdesign/testing'
 import type { ReactElement } from 'react'
 import { renderToStaticMarkup } from 'react-dom/server'
 import { afterEach, describe, expect, it } from 'vitest'

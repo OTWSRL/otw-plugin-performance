@@ -1,4 +1,4 @@
-import { PrerenderedPerformanceBar } from '@otw/plugin-performance/prerendered'
+import { PrerenderedPerformanceBar } from '@otwdesign/plugin-performance/prerendered'
 import type { ReactNode } from 'react'
 import '../globals.css'
 

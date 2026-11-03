@@ -1,7 +1,7 @@
-import { definePlugin, HttpError, type ApiContext, type PluginContext } from '@otw/sdk'
+import { definePlugin, HttpError, type ApiContext, type PluginContext } from '@otwdesign/sdk'
 import { performanceSlot, TRACE_ID } from './slot'
 
-declare module '@otw/sdk' {
+declare module '@otwdesign/sdk' {
   interface Capabilities {
     /** See the performance bar, and the traces of recent requests. Administrators have it. */
     'performance.view': true
@@ -22,12 +22,12 @@ async function requireViewer(cms: PluginContext, context: ApiContext): Promise<v
 
 export default definePlugin({
   id: 'performance',
-  version: '0.1.0',
+  version: '1.0.0',
   name: 'Performance',
   icon: 'chart',
   description:
     'How long each request takes on the server and in the browser: queries, hooks, plugins and Web Vitals, in a bar at the bottom of every page.',
-  requires: { core: '^0.1.0' },
+  requires: { core: '^1.0.0' },
 
   setup(cms) {
     cms.traces.enable()

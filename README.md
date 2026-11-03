@@ -1,6 +1,6 @@
 # Performance for OTW CMS
 
-`@otw/plugin-performance`: WordPress's Query Monitor, plus the browser's side. People with the
+`@otwdesign/plugin-performance`: WordPress's Query Monitor, plus the browser's side. People with the
 `performance.view` capability (administrators, unless a plugin grants it to others) get a bar at
 the bottom of every page of the site and the admin. For each request, it shows:
 
@@ -21,7 +21,7 @@ OTW CMS that has them. For people who can't see the bar, it adds the recording (
 the server) and none of the bar's code: it's a chunk of its own, loaded only where the bar shows.
 
 On prerendered pages, which have no request to trace and don't know who's viewing, a site puts
-`<PrerenderedPerformanceBar />` from `@otw/plugin-performance/prerendered` last in the layout's
+`<PrerenderedPerformanceBar />` from `@otwdesign/plugin-performance/prerendered` last in the layout's
 `<body>`. It shows the browser's side to people the bar has shown to elsewhere (a cookie,
 `performance_bar`, marks them, and the server confirms); visitors get about a kilobyte of script
 that finds no cookie and stops.
@@ -48,7 +48,7 @@ src/        the plugin: index.tsx (the main entry), admin.tsx (the admin entry, 
             bar.tsx (the bar, a client component, loaded by lazy-bar.tsx), prerendered.tsx (for
             prerendered layouts), hint.ts (its cookie), panels.tsx (what it shows), format.ts
             and browser.ts (the numbers)
-test/       unit tests, on @otw/testing's kernel
+test/       unit tests, on @otwdesign/testing's kernel
 site/       an OTW site with this plugin installed, for `pnpm dev` and the e2e tests
 site/catalog  a test plugin with a slow page (/catalog: one query per item) for the bar to find
 site/src/app/(static)  a prerendered layout and page (/about), for PrerenderedPerformanceBar
@@ -62,6 +62,6 @@ Two things follow from linking to a checkout, and go away once the CMS is instal
 
 ## Releasing
 
-Once `@otw/sdk` and `@otw/admin-ui` are on npm: point the development dependencies at `^0.1.0`
+Once `@otwdesign/sdk` and `@otwdesign/admin-ui` are on npm: point the development dependencies at `^1.0.0`
 instead of `link:`, drop `"private"`, and publish as the Plugin Handbook's Publishing page
 describes. `files` already limits the package to `src`.

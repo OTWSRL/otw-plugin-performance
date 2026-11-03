@@ -1,4 +1,4 @@
-import type { RequestTrace, TraceSpan } from '@otw/sdk'
+import type { RequestTrace, TraceSpan } from '@otwdesign/sdk'
 
 /** `182 ms`, `1.24 s`; `–` when unknown. */
 export function formatMs(ms: number | null | undefined): string {

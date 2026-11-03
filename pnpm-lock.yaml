@@ -14,13 +14,13 @@ importers:
       '@next/eslint-plugin-next':
         specifier: ^16.4.3
         version: 16.4.3(eslint@10.14.0)
-      '@otw/admin-ui':
+      '@otwdesign/admin-ui':
         specifier: link:../nextjs-cms/packages/admin-ui
         version: link:../nextjs-cms/packages/admin-ui
-      '@otw/sdk':
+      '@otwdesign/sdk':
         specifier: link:../nextjs-cms/packages/sdk
         version: link:../nextjs-cms/packages/sdk
-      '@otw/testing':
+      '@otwdesign/testing':
         specifier: link:../nextjs-cms/packages/testing
         version: link:../nextjs-cms/packages/testing
       '@types/node':
@@ -74,16 +74,16 @@ importers:
       '@opentelemetry/api':
         specifier: ~1.9.0
         version: 1.9.1
-      '@otw/admin-ui':
+      '@otwdesign/admin-ui':
         specifier: link:../../nextjs-cms/packages/admin-ui
         version: link:../../nextjs-cms/packages/admin-ui
-      '@otw/next':
+      '@otwdesign/next':
         specifier: link:../../nextjs-cms/packages/next
         version: link:../../nextjs-cms/packages/next
-      '@otw/plugin-performance':
+      '@otwdesign/plugin-performance':
         specifier: workspace:*
         version: link:..
-      '@otw/sdk':
+      '@otwdesign/sdk':
         specifier: link:../../nextjs-cms/packages/sdk
         version: link:../../nextjs-cms/packages/sdk
       catalog-fixture:
@@ -102,7 +102,7 @@ importers:
         specifier: ^19.3.1
         version: 19.3.1(react@19.3.1)
     devDependencies:
-      '@otw/cli':
+      '@otwdesign/cli':
         specifier: link:../../nextjs-cms/packages/cli
         version: link:../../nextjs-cms/packages/cli
       '@playwright/test':

@@ -1,4 +1,4 @@
-import { definePlugin } from '@otw/sdk'
+import { definePlugin } from '@otwdesign/sdk'
 
 const ITEMS = [1, 2, 3]
 
@@ -10,7 +10,7 @@ export default definePlugin({
   version: '1.0.0',
   name: 'Catalog',
   description: 'A slow page for testing the performance bar.',
-  requires: { core: '^0.1.0' },
+  requires: { core: '^1.0.0' },
   setup(cms) {
     cms.routes.page({
       name: 'list',

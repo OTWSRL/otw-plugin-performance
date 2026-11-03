@@ -1,4 +1,4 @@
-import type { PluginContext, User } from '@otw/sdk'
+import type { PluginContext, User } from '@otwdesign/sdk'
 import { LazyPerformanceBar } from './lazy-bar'
 
 /** A trace id, as OpenTelemetry writes it: 32 lowercase hex digits. */

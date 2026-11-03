@@ -1,5 +1,5 @@
 import { resolve } from 'node:path'
-import { withCms } from '@otw/next/config'
+import { withCms } from '@otwdesign/next/config'
 
 // The CMS comes from a checkout next to this repo (../nextjs-cms), so Turbopack's root must hold
 // both. Next runs from this directory.

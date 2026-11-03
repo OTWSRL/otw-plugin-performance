@@ -1,4 +1,4 @@
-import type { RequestTrace, TraceSpan } from '@otw/sdk'
+import type { RequestTrace, TraceSpan } from '@otwdesign/sdk'
 import { describe, expect, it } from 'vitest'
 import { depths, formatBytes, formatMs, label, rate, summarize, treeOrder } from '../src/format'
 

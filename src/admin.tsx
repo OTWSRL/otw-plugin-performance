@@ -1,5 +1,5 @@
-import { ListTable } from '@otw/admin-ui'
-import { defineAdmin, type RequestTrace } from '@otw/sdk'
+import { ListTable } from '@otwdesign/admin-ui'
+import { defineAdmin, type RequestTrace } from '@otwdesign/sdk'
 import { formatBytes, formatMs, summarize } from './format'
 import performance from './index'
 import {

@@ -1,4 +1,4 @@
-import type { RequestTrace, TraceSpan } from '@otw/sdk'
+import type { RequestTrace, TraceSpan } from '@otwdesign/sdk'
 import type { ReactNode } from 'react'
 import type { NavigationPhases, PageSize, ResourceSummary } from './browser'
 import {

@@ -1,6 +1,6 @@
 'use client'
 
-import type { RequestTrace } from '@otw/sdk'
+import type { RequestTrace } from '@otwdesign/sdk'
 import { usePathname } from 'next/navigation'
 import { useEffect, useMemo, useState, useSyncExternalStore, type ReactNode } from 'react'
 import {
