@@ -1,21 +1,41 @@
 {
   "name": "@otwdesign/plugin-performance",
   "version": "1.0.0",
-  "private": true,
   "description": "How long each request takes on the server and in the browser: queries, hooks, plugins and Web Vitals.",
+  "license": "Apache-2.0",
+  "author": "OTW SRL",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/OTWSRL/otw-plugin-performance.git"
+  },
+  "homepage": "https://github.com/OTWSRL/otw-plugin-performance#readme",
+  "bugs": {
+    "url": "https://github.com/OTWSRL/otw-plugin-performance/issues"
+  },
+  "keywords": [
+    "otw-cms",
+    "cms",
+    "plugin",
+    "performance",
+    "web-vitals"
+  ],
   "type": "module",
   "packageManager": "pnpm@10.5.2",
-  "engines": {
-    "node": ">=22.18"
-  },
   "exports": {
     ".": "./src/index.tsx",
     "./prerendered": "./src/prerendered.tsx",
     "./admin": "./src/admin.tsx"
   },
   "files": [
-    "src"
+    "src",
+    "NOTICE"
   ],
+  "publishConfig": {
+    "access": "public"
+  },
+  "engines": {
+    "node": ">=22.18"
+  },
   "scripts": {
     "dev": "pnpm --filter ./site dev",
     "lint": "eslint .",

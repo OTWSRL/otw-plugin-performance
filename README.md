@@ -65,3 +65,7 @@ Two things follow from linking to a checkout, and go away once the CMS is instal
 Once `@otwdesign/sdk` and `@otwdesign/admin-ui` are on npm: point the development dependencies at `^1.0.0`
 instead of `link:`, drop `"private"`, and publish as the Plugin Handbook's Publishing page
 describes. `files` already limits the package to `src`.
+
+## License
+
+Apache License 2.0; see [LICENSE](LICENSE) and [NOTICE](NOTICE). Copyright 2026 OTW SRL.
