@@ -1,0 +1,74 @@
+name: CI
+
+# The plugin links the CMS's packages from a checkout next to it (../nextjs-cms), as on a
+# developer's machine, so each job checks out both: this repo and the CMS's main branch.
+
+on:
+  push:
+  pull_request:
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+defaults:
+  run:
+    working-directory: otw-plugin-performance
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          path: otw-plugin-performance
+      - uses: actions/checkout@v5
+        with:
+          repository: OTWSRL/otw-cms
+          path: nextjs-cms
+      - uses: pnpm/action-setup@v4
+        with:
+          package_json_file: otw-plugin-performance/package.json
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 24
+          cache: pnpm
+          cache-dependency-path: '*/pnpm-lock.yaml'
+      - run: pnpm install --frozen-lockfile
+        working-directory: nextjs-cms
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm lint
+      - run: pnpm format:check
+      - run: pnpm typecheck
+      - run: pnpm test
+
+  e2e:
+    needs: check
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          path: otw-plugin-performance
+      - uses: actions/checkout@v5
+        with:
+          repository: OTWSRL/otw-cms
+          path: nextjs-cms
+      - uses: pnpm/action-setup@v4
+        with:
+          package_json_file: otw-plugin-performance/package.json
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 24
+          cache: pnpm
+          cache-dependency-path: '*/pnpm-lock.yaml'
+      - run: pnpm install --frozen-lockfile
+        working-directory: nextjs-cms
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm --filter ./site exec playwright install --with-deps chromium
+      - run: pnpm test:e2e
+      - if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-traces
+          path: otw-plugin-performance/site/test-results
+          retention-days: 7
