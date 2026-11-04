@@ -1,8 +1,21 @@
 # Performance for OTW CMS
 
-`@otwdesign/plugin-performance`: WordPress's Query Monitor, plus the browser's side. People with the
-`performance.view` capability (administrators, unless a plugin grants it to others) get a bar at
-the bottom of every page of the site and the admin. For each request, it shows:
+`@otwdesign/plugin-performance`: WordPress's Query Monitor, plus the browser's side, in a bar at
+the bottom of every page of the site and the admin.
+
+## Installing it
+
+```sh
+npm install @otwdesign/plugin-performance
+```
+
+Add `"@otwdesign/plugin-performance"` to `plugins` in the site's `cms.config.json`, rebuild, and
+activate **Performance** on the Plugins screen. It needs OTW CMS 1.0.0 or later.
+
+## What it shows
+
+People with the `performance.view` capability (administrators, unless a plugin grants it to
+others) get the bar. For each request, it shows:
 
 - the server's time;
 - the browser's timings: the Web Vitals (FCP, LCP, CLS, INP), and when the page was ready to use;
@@ -16,24 +29,19 @@ the bottom of every page of the site and the admin. For each request, it shows:
 site's Performance page; how tracing works is in its Hosting › Tracing and Plugin Handbook ›
 Tracing.
 
-It reads the traces the CMS records with OpenTelemetry (`cms.traces`), which OTW CMS has from
-1.0.0. For people who can't see the bar, it adds the recording (about 0.15 ms on
-the server) and none of the bar's code: it's a chunk of its own, loaded only where the bar shows.
+## What it costs
 
-On prerendered pages, which have no request to trace and don't know who's viewing, a site puts
-`<PrerenderedPerformanceBar />` from `@otwdesign/plugin-performance/prerendered` last in the layout's
-`<body>`. It shows the browser's side to people the bar has shown to elsewhere (a cookie,
+It reads the traces the CMS records with OpenTelemetry (`cms.traces`), which OTW CMS has from
+1.0.0. For people who can't see the bar, it adds the recording (about 0.15 ms on the server) and
+none of the bar's code: it's a chunk of its own, loaded only where the bar shows.
+
+## Prerendered pages
+
+Prerendered pages have no request to trace and don't know who's viewing, so a site puts
+`<PrerenderedPerformanceBar />` from `@otwdesign/plugin-performance/prerendered` last in the
+layout's `<body>`. It shows the browser's side to people the bar has shown to elsewhere (a cookie,
 `performance_bar`, marks them, and the server confirms); visitors get about a kilobyte of script
 that finds no cookie and stops.
-
-## Installing it
-
-```sh
-npm install @otwdesign/plugin-performance
-```
-
-Add `"@otwdesign/plugin-performance"` to `plugins` in the site's `cms.config.json`, rebuild, and
-activate **Performance** on the Plugins screen. It needs OTW CMS 1.0.0 or later.
 
 ## Working on it
 
