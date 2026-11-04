@@ -16,8 +16,8 @@ the bottom of every page of the site and the admin. For each request, it shows:
 site's Performance page; how tracing works is in its Hosting › Tracing and Plugin Handbook ›
 Tracing.
 
-It reads the traces the CMS records with OpenTelemetry (`cms.traces`), so it needs the version of
-OTW CMS that has them. For people who can't see the bar, it adds the recording (about 0.15 ms on
+It reads the traces the CMS records with OpenTelemetry (`cms.traces`), which OTW CMS has from
+1.0.0. For people who can't see the bar, it adds the recording (about 0.15 ms on
 the server) and none of the bar's code: it's a chunk of its own, loaded only where the bar shows.
 
 On prerendered pages, which have no request to trace and don't know who's viewing, a site puts
@@ -26,9 +26,20 @@ On prerendered pages, which have no request to trace and don't know who's viewin
 `performance_bar`, marks them, and the server confirms); visitors get about a kilobyte of script
 that finds no cookie and stops.
 
+## Installing it
+
+```sh
+npm install @otwdesign/plugin-performance
+```
+
+Add `"@otwdesign/plugin-performance"` to `plugins` in the site's `cms.config.json`, rebuild, and
+activate **Performance** on the Plugins screen. It needs OTW CMS 1.0.0 or later.
+
 ## Working on it
 
-The CMS's packages aren't on npm yet, so this repo links to a checkout of the CMS next to it:
+The published plugin takes the CMS from npm (its peer dependencies). This repo links a checkout
+of the CMS next to it instead, so the plugin, the CMS and the docs site, which links this repo
+too, are worked on together:
 
 ```
 nextjs-cms/              the CMS
@@ -62,9 +73,14 @@ Two things follow from linking to a checkout, and go away once the CMS is instal
 
 ## Releasing
 
-Once `@otwdesign/sdk` and `@otwdesign/admin-ui` are on npm: point the development dependencies at `^1.0.0`
-instead of `link:`, drop `"private"`, and publish as the Plugin Handbook's Publishing page
-describes. `files` already limits the package to `src`.
+Published by hand, as the Plugin Handbook's Publishing page describes. Bump the version in
+`package.json` and in `src/index.tsx` (the plugin's `version`), then:
+
+```sh
+pnpm check && pnpm test:e2e
+pnpm publish --dry-run   # this package alone: src, README.md, LICENSE, NOTICE and package.json
+pnpm publish             # npm asks for your second factor
+```
 
 ## License
 
