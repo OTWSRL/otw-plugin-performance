@@ -44,7 +44,10 @@
     "typecheck": "tsc --noEmit -p . && pnpm --filter ./site typecheck",
     "test": "vitest run",
     "test:e2e": "pnpm --filter ./site test:e2e",
-    "check": "pnpm lint && pnpm format:check && pnpm typecheck && pnpm test"
+    "check": "pnpm lint && pnpm format:check && pnpm typecheck && pnpm test",
+    "changeset": "changeset",
+    "version-packages": "changeset version && node scripts/sync-plugin-version.mjs",
+    "release": "changeset publish"
   },
   "peerDependencies": {
     "@otwdesign/admin-ui": "^1.0.0",
@@ -53,6 +56,7 @@
     "react": "^19.0.0"
   },
   "devDependencies": {
+    "@changesets/cli": "^3.0.3",
     "@eslint/js": "^10.0.1",
     "@next/eslint-plugin-next": "^16.4.3",
     "@otwdesign/admin-ui": "link:../nextjs-cms/packages/admin-ui",
