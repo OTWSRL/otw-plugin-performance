@@ -22,7 +22,7 @@ async function requireViewer(cms: PluginContext, context: ApiContext): Promise<v
 
 export default definePlugin({
   id: 'performance',
-  version: '1.0.0',
+  version: '1.0.1',
   name: 'Performance',
   icon: 'chart',
   description:
