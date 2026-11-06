@@ -85,11 +85,11 @@ Releases go out from GitHub Actions, as the CMS's do (see [.changeset/README.md]
 
 - With a change that should reach npm, add a changeset: `pnpm changeset`, the bump and a line for
   the changelog. Commit it with the change.
-- After CI passes on `main`, the release workflow opens or updates the "Version Packages" pull
-  request. Merging it publishes to npm through trusted publishing, with provenance: no npm token
-  is stored anywhere.
-- `pnpm version-packages` is the version step on its own: `changeset version`, then the plugin's
-  `version` in `src/index.tsx` follows `package.json`. `test/version.test.ts` checks they match.
+- To release, run `pnpm version-packages` (`changeset version`, then the plugin's `version` in
+  `src/index.tsx` follows `package.json`; `test/version.test.ts` checks they match), commit the
+  result and push it to `main`. There's no pull request.
+- After CI passes on that commit, the release workflow publishes to npm through trusted
+  publishing, with provenance: no npm token is stored anywhere.
 
 By hand, if the workflow can't run:
 

@@ -7,6 +7,6 @@ describe the change for the changelog. Commit the file with the change.
 - A release that needs a newer OTW CMS raises the peer ranges on `@otwdesign/sdk` and
   `@otwdesign/admin-ui` and `requires.core` in `src/index.tsx` together, in the same change.
 
-On `main`, the release workflow opens a "Version Packages" pull request with the version bump
-(in `package.json` and the plugin's `version` in `src/index.tsx`) and the changelog. Merging it
-publishes to npm.
+To release, run `pnpm version-packages`, which writes the version bump (in `package.json` and the
+plugin's `version` in `src/index.tsx`) and the changelog, then commit and push to `main`. Once CI
+passes, the release workflow publishes to npm.
