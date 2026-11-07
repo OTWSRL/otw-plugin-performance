@@ -44,6 +44,7 @@
     "typecheck": "tsc --noEmit -p . && pnpm --filter ./site typecheck",
     "test": "vitest run",
     "test:e2e": "pnpm --filter ./site test:e2e",
+    "test:all": "pnpm check && pnpm test:e2e",
     "check": "pnpm lint && pnpm format:check && pnpm typecheck && pnpm test",
     "changeset": "changeset",
     "version-packages": "changeset version && node scripts/sync-plugin-version.mjs",

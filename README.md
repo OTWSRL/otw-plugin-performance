@@ -59,6 +59,7 @@ pnpm install
 pnpm dev          # the test site, at http://localhost:3000 (the first visit sets up an administrator)
 pnpm check        # lint, format, typecheck, unit tests
 pnpm test:e2e     # Playwright, against the test site built from scratch
+pnpm test:all     # everything CI runs: check, then e2e
 ```
 
 ```
