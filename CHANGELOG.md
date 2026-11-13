@@ -1,5 +1,11 @@
 # @otwdesign/plugin-performance
 
+## 1.0.2
+
+### Patch Changes
+
+- 6ede8c3: Tagged `otw-cms-plugin` on npm, so a site's Plugins › Add Plugin (OTW CMS 1.5 and later) lists it.
+
 ## 1.0.1
 
 ### Patch Changes
